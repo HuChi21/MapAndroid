@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/white"
+    android:id="@+id/bottom_address_detail"
+    android:elevation="20dp"
+    android:padding="15dp"
+    android:orientation="vertical"
+    app:behavior_hideable="true"
+    app:behavior_peekHeight="100dp"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:id="@+id/feartureName"
+            android:textColor="@color/black"
+            android:gravity="center|start"
+            android:textSize="18dp"
+            android:hint="Tên"
+            />
+   <LinearLayout
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content">
+       <ImageView
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:src="@drawable/outline_location_on_24"
+           android:tint="#1a73e8"
+           android:layout_gravity="center"
+           android:layout_marginEnd="20dp"
+           />
+       <TextView
+           android:layout_width="match_parent"
+           android:layout_height="40dp"
+           android:gravity="center|start"
+           android:id="@+id/address"
+           android:textSize="15dp"
+           android:textColor="#121212"
+           android:hint="Địa chỉ"
+           />
+   </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/outline_edit_24"
+            android:tint="#1a73e8"
+            android:layout_gravity="center"
+            android:layout_marginEnd="20dp"
+            />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center|start"
+            android:id="@+id/type"
+            android:textAllCaps="false"
+            android:textColor="#121212"
+            android:hint="loại"
+            android:textSize="15dp"
+            />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+       android:layout_width="match_parent"
+       android:layout_height="40dp">
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/outline_star_outline_24"
+            android:tint="#1a73e8"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <RatingBar
+            android:id="@+id/rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:numStars="5"
+            android:scaleX="0.4"
+            android:scaleY="0.4"
+            android:transformPivotX="0dp"
+            android:transformPivotY="17.5dp"
+            app:layout_constraintStart_toEndOf="@+id/imageView" />
+
+        <TextView
+            android:id="@+id/rate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="120dp"
+            android:textAllCaps="false"
+            android:textColor="#121212"
+            android:textSize="15dp"
+            android:textStyle="italic"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imageView"
+            app:layout_constraintTop_toTopOf="parent" />
+   </androidx.constraintlayout.widget.ConstraintLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/outline_access_time_24"
+            android:tint="#1a73e8"
+            android:layout_gravity="center"
+            android:layout_marginEnd="20dp"
+            />
+
+        <TextView
+            android:id="@+id/isOpen"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:hint="Opening"
+            android:gravity="center|start"
+            android:layout_marginEnd="10dp"
+            />
+
+        <TextView
+            android:id="@+id/openingHour"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Opening hour"
+            android:textColor="#121212" />
+
+    </LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/outline_south_america_24"
+            android:tint="#1a73e8"
+            android:layout_gravity="center"
+            android:layout_marginEnd="20dp"
+            />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center|start"
+            android:id="@+id/website"
+            android:textColor="#121212"
+            android:hint="website"
+            android:layout_marginBottom="20dp"
+            />
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp">
+
+        <Button
+            android:id="@+id/btnDuongdi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20dp"
+            android:background="@drawable/corner_button"
+            android:backgroundTint="#1a73e8"
+            android:drawableStart="@drawable/baseline_directions_24"
+            android:drawableTint="@color/white"
+            android:text="Đường đi"
+            android:textSize="15dp"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/btnGoi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/corner_button"
+            android:drawableStart="@drawable/baseline_phone_24"
+            android:drawableTint="#1a73e8"
+            android:paddingHorizontal="20dp"
+            android:text="Gọi"
+            android:textAllCaps="false"
+            android:textColor="#1a73e8"
+            android:textSize="15dp"
+            app:layout_constraintEnd_toStartOf="@+id/btnTrangWeb"
+            app:layout_constraintStart_toEndOf="@+id/btnDuongdi" />
+        <Button
+                android:id="@+id/btnTrangWeb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:background="@drawable/corner_button"
+                android:drawableStart="@drawable/outline_south_america_24"
+                android:drawableTint="#1a73e8"
+                android:text="Trang web"
+                android:textColor="#1a73e8"
+                android:textSize="15dp"
+                android:textAllCaps="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</LinearLayout>

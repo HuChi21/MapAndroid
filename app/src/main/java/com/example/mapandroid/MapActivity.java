@@ -3,26 +3,38 @@ package com.example.mapandroid;
 import static android.content.ContentValues.TAG;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PackageManagerCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.EditText;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RatingBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.directions.route.AbstractRouting;
+import com.directions.route.Route;
+import com.directions.route.RouteException;
+import com.directions.route.Routing;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -33,6 +45,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
@@ -41,83 +55,80 @@ import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.directions.route.RoutingListener;
+import com.google.android.material.snackbar.Snackbar;
+
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class MapActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapActivity extends FragmentActivity implements OnMapReadyCallback,RoutingListener {
     private boolean permissionGranted = false;
     private static final int LOCATION_REQUEST_CODE = 1234;
     private static int changeView = 0;
     private static final float DEFAULT_CAM = 15f;
     private double selectLat, selectLng;
-
+    private TextView txtFeaturename,txtAddress,txtRate,txtIsopen,txtOpeninghour,txtType,txtWeb;
+    private RatingBar ratingBar;
+    private Button btnDuongdi,btnGoi,btnWeb;
+    private Address address;
+    private List<Address> addresses;
+    private String selectedAddress;
     private GoogleMap map;
     private Marker marker;
-    private Address address;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private String apikey;
     private PlacesClient placesClient;
-    private ImageView imgGps, imgView, imgSearch, imgInfo, imgDirect;
-
-
+    private ImageView imgGps, imgView, imgInfo, imgDirect;
+    private LinearLayout bottom_address_detail;
+    private BottomSheetBehavior sheetBehavior;
+    private LocationManager locationManager;
+    private LatLng start,end;
+    private MarkerOptions markerOptions = new MarkerOptions();;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
-        getWidget();
+        getWidget(); //ánh xạ
         getPermission(); // kiểm tra quyền sử dụng Vị trí
         apikey = getString(R.string.api_key);
-
-        placeAutocomplete();
     }
 
     private void getWidget() {
         imgGps = (ImageView) findViewById(R.id.imgGps);
         imgView = (ImageView) findViewById(R.id.imgView);
-        imgSearch = (ImageView) findViewById(R.id.imgSearch);
         imgInfo = (ImageView) findViewById(R.id.imgInfo);
         imgDirect = (ImageView) findViewById(R.id.imgDirect);
-    }
 
-    private void placeAutocomplete() {
-        if(!Places.isInitialized()){
-            Places.initialize(getApplicationContext(),apikey);
-        }
-        placesClient = Places.createClient(getApplicationContext());
-        // Initialize the AutocompleteSupportFragment.
-        AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
-                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
+        //tạo bottom sheet chi tiết địa chỉ
+        bottom_address_detail = (LinearLayout) findViewById(R.id.bottom_address_detail);
+        sheetBehavior = BottomSheetBehavior.from(bottom_address_detail);
 
-        autocompleteFragment.setTypeFilter(TypeFilter.ESTABLISHMENT);
+        txtFeaturename = findViewById(R.id.feartureName);
+        txtAddress = findViewById(R.id.address);
+        ratingBar = findViewById(R.id.rating);
+        txtRate = findViewById(R.id.rate);
+        txtIsopen = findViewById(R.id.isOpen);
+        txtOpeninghour = findViewById(R.id.openingHour);
+        txtType = findViewById(R.id.type);
+        txtWeb = findViewById(R.id.website);
+        btnDuongdi = findViewById(R.id.btnDuongdi);
+        btnGoi = findViewById(R.id.btnGoi);
+        btnWeb = findViewById(R.id.btnTrangWeb);
 
-        autocompleteFragment.setCountries("VN");
-        // Specify the types of place data to return.
-        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME,Place.Field.LAT_LNG,Place.Field.ADDRESS_COMPONENTS));
-//        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ADDRESS));
-
-        // Set up a PlaceSelectionListener to handle the response.
-        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-            @Override
-            public void onPlaceSelected(@NonNull Place place) {
-                // TODO: Get info about the selected place.
-                Log.i(TAG, "Place: " +place.getLatLng()+ place.getName() + ", " + place.getId()+String.valueOf(place.getAddressComponents().asList().get(3).getName()));
-
-                moveCam(place.getLatLng(),DEFAULT_CAM,place.getName(), String.valueOf(place.getAddressComponents()));
-            }
-
-
-            @Override
-            public void onError(@NonNull Status status) {
-                // TODO: Handle the error.
-                Log.i(TAG, "An error occurred: " + status);
-            }
-        });
+        locationManager= (LocationManager) getSystemService(LOCATION_SERVICE);
 
     }
-
     private void getPermission() {
         String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
         String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
@@ -128,7 +139,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                 initMap();  // khởi tạo map
             } else {
                 ActivityCompat.requestPermissions(this, permissions, LOCATION_REQUEST_CODE);
-                Toast.makeText(this, "PERMISSION IS REQUIRED,PLEASE ALLOW FROM SETTTINGS", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Để tiếp tục, vui lòng cấp quyền vị trí!", Toast.LENGTH_SHORT).show();
                 permissionGranted = false;
             }
         } else {
@@ -136,12 +147,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             permissionGranted = false;
         }
     }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         Log.d(TAG, "onRequestPermissionsResult: called.");
         permissionGranted = false;
-
         switch (requestCode) {
             case LOCATION_REQUEST_CODE: {
                 if (grantResults.length > 0) {
@@ -160,18 +169,16 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             }
         }
     }
-
     private void initMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(MapActivity.this);
     }
-
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
         Toast.makeText(this, "Khởi tạo map thành công!", Toast.LENGTH_SHORT).show();
         if (permissionGranted == true) {
-            getCurrentLocation();
+            getCurrentLocation(); // lấy vị trí hiện tại
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
@@ -185,16 +192,79 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
             map.setMyLocationEnabled(true);
             map.getUiSettings().setMyLocationButtonEnabled(false);
             map.getUiSettings().setZoomControlsEnabled(true);
-            init();
+            actionMap(); //
+            }
+
+    }
+    public void getCurrentLocation() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        try {
+            if (permissionGranted) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                Task location = fusedLocationProviderClient.getLastLocation();
+                location.addOnCompleteListener(new OnCompleteListener() {
+                    @Override
+                    public void onComplete(@NonNull Task task) {
+                        if(task.isSuccessful() && task.getResult() != null){
+                            Toast.makeText(MapActivity.this, "Tìm thấy vị trí của thiết bị!", Toast.LENGTH_SHORT).show();
+                            Location currentLocation = (Location) task.getResult();
+                            start = new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude());
+                            moveCam(new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude()),15f,"Vị trí của tôi","Địa chỉ");
+                        }else{
+                            Toast.makeText(MapActivity.this, "Không tìm được vị trí của thiết bị.\nVui lòng bật gps!", Toast.LENGTH_SHORT).show();
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    requestGPS(); // yêu cầu sử dụng định vị vị trí
+                                }
+                            },4000);
+                        }
+                    }
+                });
+            }
+        }
+        catch (Exception e){
+            Toast.makeText(this, "Error" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-    private void init(){
-        imgSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                geoLocate();
-            }
-        });
+    private void requestGPS() {
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+        }
+    }
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Để tiếp tục, hãy bật vị trí thiết bị bằng cách sử dụng dịch vụ vị trí của Google")
+                .setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        finish();
+                        startActivity(getIntent());
+
+                    }
+                })
+                .setNegativeButton("Không, cảm ơn", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+    private void actionMap(){
+        placeAutocomplete(); //tự động điền vị trí
         imgGps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -218,30 +288,31 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
         imgInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                geoLocate();
-                placeAutocomplete();
                 try{
-                    if(marker.isInfoWindowShown()){
+                    if(sheetBehavior.getState() != sheetBehavior.STATE_EXPANDED){
+                        Toast.makeText(MapActivity.this, "STATE_EXPANDED", Toast.LENGTH_SHORT).show();
                         marker.hideInfoWindow();
-                    }else{
-                        Log.d(TAG, "onClick: place info: " );
+                        sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
+                    }else {
+                        sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
+                        Toast.makeText(MapActivity.this, "STATE_COLLAPSED", Toast.LENGTH_SHORT).show();
                         marker.showInfoWindow();
                     }
                 }catch (NullPointerException e){
                     Log.e(TAG, "onClick: NullPointerException: " + e.getMessage() );
                 }
+
             }
         });
         imgDirect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try
-                {
-
-                }
-                catch(Exception e)
-                {
-                    Log.e(TAG, "onClick: NullPointerException: " + e.getMessage() );
+                if(end == null){
+                    Toast.makeText(MapActivity.this, "Chọn vị trí", Toast.LENGTH_SHORT).show();
+                }else{
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(end, DEFAULT_CAM));
+                    marker.showInfoWindow();
+                    sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
                 }
             }
         });
@@ -251,89 +322,315 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback 
                 selectLat = latLng.latitude;
                 selectLng = latLng.longitude;
                 getAddress(selectLat,selectLng);
+
             }
         });
     }
     private void getAddress(double mLat,double mLng){
         map.clear();
         Geocoder geocoder = new Geocoder(MapActivity.this);
-
         if(mLat!=0){
-//            try {
-//                addresses = geocoder.getFromLocation(mLat,mLng,1);
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//            if(addresses != null){
-//                String mAddress = addresses.get(0).getAddressLine(0);
-//                String city =addresses.get(0).getLocality();
-//                String state =addresses.get(0).getAdminArea();
-//                String country =addresses.get(0).getCountryName();
-//                String postalCode =addresses.get(0).getCountryCode();
-//                String knownName=addresses.get(0).getFeatureName();
-//                String dis=addresses.get(0).getSubAdminArea();
-//
-//                selectedAddress = mAddress;
-//                if (mAddress != null) {
-//                    MarkerOptions markerOptions = new MarkerOptions();
-//                    LatLng latLng = new LatLng(mLat,mLng);
-//
-//                    markerOptions .position(latLng).title(knownName).snippet(selectedAddress);
-//                    gMap.addMarker(markerOptions).showInfoWindow();
-//                }
-//                else{
-//                    Toast.makeText(this,"Something error!",Toast.LENGTH_SHORT).show();
-//                }
-//            }
+            try {
+                addresses = geocoder.getFromLocation(mLat,mLng,1);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            if(addresses != null){
+                String mAddress = addresses.get(0).getAddressLine(0);
+                String city =addresses.get(0).getLocality();
+                String state =addresses.get(0).getAdminArea();
+                String country =addresses.get(0).getCountryName();
+                String postalCode =addresses.get(0).getCountryCode();
+                String knownName=addresses.get(0).getFeatureName();
+                String dis=addresses.get(0).getSubAdminArea();
+                float rating =(float) ThreadLocalRandom.current().nextDouble(4.0f, 5.0f);
+                String type= String.valueOf(addresses.get(0).getAdminArea());
+                String web= addresses.get(0).getUrl();
+                String phoneNumber= addresses.get(0).getPhone();
 
-        }
-    }
-
-    public void getCurrentLocation() {
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        try {
-            if (permissionGranted) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
+                selectedAddress = mAddress;
+                if (mAddress != null) {
+                    LatLng latLng = new LatLng(mLat,mLng);
+                    markerOptions.position(latLng).title(knownName +","+ dis).snippet(selectedAddress);
+                    marker = map.addMarker(markerOptions);
+                    showInfo(latLng,knownName,mAddress,rating,"Đang mở cửa","Mở cửa cả ngày",type,web,phoneNumber);
+                    sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
                 }
-                Task location = fusedLocationProviderClient.getLastLocation();
-                location.addOnCompleteListener(new OnCompleteListener() {
-                   @Override
-                   public void onComplete(@NonNull Task task) {
-                       if(task.isSuccessful() && task.getResult() != null){
-                           Toast.makeText(MapActivity.this, "Tìm thấy vị trí của thiết bị!", Toast.LENGTH_SHORT).show();
-                           Location currentLocation = (Location) task.getResult();
-
-                           moveCam(new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude()),15f,"My current Location","My address");
-                       }else{
-                           Toast.makeText(MapActivity.this, "Không tìm được vị trí của thiết bị!", Toast.LENGTH_SHORT).show();
-                       }
-                   }
-                });
+                else{
+                    Toast.makeText(this,"Lỗi!",Toast.LENGTH_SHORT).show();
+                }
             }
         }
-        catch (Exception e){
-            Toast.makeText(this, "Error" + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
     }
+    private void placeAutocomplete() {
+        if(!Places.isInitialized()){
+            Places.initialize(getApplicationContext(),apikey);
+        }
+        placesClient = Places.createClient(getApplicationContext());
+        // Initialize the AutocompleteSupportFragment.
+        AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
+                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
+        autocompleteFragment.setTypeFilter(TypeFilter.ESTABLISHMENT);
+        autocompleteFragment.getView().setBackgroundColor(Color.WHITE);
+
+        autocompleteFragment.setCountries("VN");
+        // Specify the types of place data to return.
+        autocompleteFragment.setPlaceFields(Arrays.asList(
+                Place.Field.ID, Place.Field.NAME,Place.Field.LAT_LNG,Place.Field.ADDRESS_COMPONENTS,
+                Place.Field.PHONE_NUMBER, Place.Field.OPENING_HOURS, Place.Field.WEBSITE_URI, Place.Field.TYPES,Place.Field.UTC_OFFSET));
+//      autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ADDRESS));
+
+        // Set up a PlaceSelectionListener to handle the response.
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                // TODO: Get info about the selected place.
+
+                Log.i(TAG, "Place: " +place.getLatLng()+ place.getName() + ", " + place.getId()+String.valueOf(place.getAddressComponents())+place.getOpeningHours());
+                map.clear();
+                String knownName=place.getName();
+                String address ="";
+                String type = String.valueOf(place.getTypes().get(0));
+                String website = String.valueOf(place.getWebsiteUri());
+                String phoneNumber = place.getPhoneNumber();
+                for(int i=0;i<place.getAddressComponents().asList().size();i++){
+                    address += place.getAddressComponents().asList().get(i).getName() +", ";
+                }
+                String diachi = address.substring(0, address.length() - 2);
+                Toast.makeText(MapActivity.this, diachi, Toast.LENGTH_SHORT).show();
+
+                //lấy ngày hiện tại
+                Calendar calendar = Calendar.getInstance();
+                Date date = calendar.getTime();
+//                Date time = calendar.getTime();
+                String currentDay = new SimpleDateFormat("EEEE", Locale.getDefault()).format(date.getTime());
+                String currentTime = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(date.getTime());
+
+                //lấy thời gian mở cửa
+                String openinghour = currentDay;
+                String isOpen = "Đang mở cửa";
+                float rating =(float) ThreadLocalRandom.current().nextDouble(4.0f, 5.0f);
+                try {
+                    if (String.valueOf(place.getOpeningHours().getWeekdayText())==null){
+                        openinghour = currentDay;
+                    }
+                    if (place.getWebsiteUri()==null){
+                        website = "";
+                    }
+                    if (place.getPhoneNumber()==null){
+                        phoneNumber = "";
+                    }
+                    else{
+                        String aaa =String.valueOf(place.getOpeningHours().getWeekdayText());
+                        String dayNew = aaa.replaceAll("^\\[|\\]$", "");
+                        String[] dayOfWeek = dayNew.split(",");
+                        for(int i=0;i<dayOfWeek.length;i++){
+                            String[] today = dayOfWeek[i].split(": ");
+                            if(today[0].trim().equals(currentDay)){
+                                openinghour = today[1].trim();
+                            }
+                        }
+                        String[] hour = openinghour.split("–");
+                        Log.d("hehe", hour[0].trim());
+                        if(hour[0].trim().equals("Mở cửa cả ngày")){
+                            isOpen = "Đang mở cửa";
+                        }
+                        else if(hour[0].trim().compareTo(currentTime)>=0||hour[1].trim().compareTo(currentTime)<=0) {
+                            isOpen = "Đóng cửa";
+                        }
+                        else{
+                            Toast.makeText(MapActivity.this, "Đúng h oi`", Toast.LENGTH_SHORT).show();
+                            isOpen = "Đang mở cửa";
+                        }
+                    }
+                }
+                catch (Exception e){
+                    Toast.makeText(MapActivity.this, "Error" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.d("error", "Error" + e.getMessage());
+                }
+                moveCam(place.getLatLng(),DEFAULT_CAM,knownName, diachi);
+                sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
+                showInfo(place.getLatLng(),knownName,diachi,rating,isOpen,openinghour,type,website,phoneNumber);
+            }
+            @Override
+            public void onError(@NonNull Status status) {
+                // TODO: Handle the error.
+                Log.i(TAG, "An error occurred: " + status);
+            }
+        });
+    }
+    private void showInfo(LatLng latlng,String featureName, String address, float rating, String isopen, String openinghour, String type, String web,String phoneNum){
+        txtFeaturename.setText(featureName);
+        txtFeaturename.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(sheetBehavior.getState() != sheetBehavior.STATE_EXPANDED){
+                    Toast.makeText(MapActivity.this, "STATE_EXPANDED", Toast.LENGTH_SHORT).show();
+                    marker.hideInfoWindow();
+                    sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
+                }else {
+                    sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
+                    Toast.makeText(MapActivity.this, "STATE_COLLAPSED", Toast.LENGTH_SHORT).show();
+                    marker.showInfoWindow();
+                }
+            }
+        });
+        txtAddress.setText(address);
+        ratingBar.setRating(rating);
+//        ratingBar.setBackT(0xFFFBBC04);
+        txtRate.setText("("+String.format("%.02f",rating)+")");
+        txtIsopen.setText(isopen);
+        if(isopen.equals("Đang mở cửa")){
+            txtIsopen.setTextColor(0xFF90EE90);
+        }else if(isopen.equals("Đóng cửa")){
+            txtIsopen.setTextColor(0xFFD93025);
+        }
+        txtOpeninghour.setText(String.valueOf(openinghour));
+        type = type.toLowerCase();
+        type = type.substring(0, 1).toUpperCase() + type.substring(1).toLowerCase();
+        txtType.setText(type);
+        txtWeb.setText(web);
+
+        markerOptions.position(latlng).title(featureName).snippet(address);
+        marker = map.addMarker(markerOptions);
+        end = latlng;
+        Log.d("end", String.valueOf(end));
+        btnDuongdi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findRoutes(start,end);
+            }
+        });
+
+        btnGoi.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (phoneNum == "" ||phoneNum == null) {
+                    Toast.makeText(MapActivity.this, "Không có số điện thoại", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    Intent intent1 = new Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phoneNum,null));
+                    startActivity(intent1);
+                }
+            }
+        });
+        btnWeb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (web == ""||web == null) {
+                    Toast.makeText(MapActivity.this, "Không có trang web", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(web));
+                    startActivity(browserIntent);
+                }
+            }
+        });
+    }
     private void moveCam(LatLng latLng, float zoom, String title, String snippet){
         Log.d(TAG, "moveCamera: moving the camera to: lat: " + latLng.latitude + ", lng: " + latLng.longitude );
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
+        Log.i(TAG, latLng.latitude + latLng.longitude +","+ DEFAULT_CAM + title + snippet);
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
 
-        if(!title.equals("My Location")){
+        if(!title.equals("Vị trí của tôi")){
             MarkerOptions options = new MarkerOptions().position(latLng).title(title).snippet(snippet);
             marker= map.addMarker(options);
         }
         //ẩn softkeyboard
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+
+    private List<Polyline> polylines=null;
+
+    public void findRoutes(LatLng Start, LatLng End)
+    {
+        if(Start==null || End==null) {
+            Toast.makeText(MapActivity.this,"Không lấy được vị trí" + String.valueOf(Start +","+End), Toast.LENGTH_LONG).show();
+        }
+        else
+        {
+
+            Routing routing = new Routing.Builder()
+                    .travelMode(AbstractRouting.TravelMode.DRIVING)
+                    .withListener(this)
+                    .alternativeRoutes(true)
+                    .waypoints(Start, End)
+                    .key(apikey)  //also define your api key here.
+                    .build();
+            routing.execute();
+        }
+    }
+    @Override
+    public void onRoutingFailure(RouteException e) {
+        View parentLayout = findViewById(android.R.id.content);
+        Snackbar snackbar= Snackbar.make(parentLayout, e.toString(), Snackbar.LENGTH_LONG);
+        snackbar.show();
+//        Findroutes(start,end);
+    }
+
+    @Override
+    public void onRoutingStart() {
+        Toast.makeText(MapActivity.this,"Đang tìm tuyến đường ...",Toast.LENGTH_SHORT).show();
+        sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
+    }
+
+    //If Route finding success..
+    @Override
+    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(end, DEFAULT_CAM));
+                map.clear();
+                if(polylines!=null) {
+                    polylines.clear();
+                }
+                PolylineOptions polyOptions = new PolylineOptions();
+//
+                polylines = new ArrayList<>();
+                //add route(s) to the map using polyline
+                for (int i = 0; i <route.size(); i++) {
+
+                    if(i==shortestRouteIndex)
+                    {
+                        polyOptions.color(0xFF1A73E8);
+                        polyOptions.width(8);
+                        polyOptions.addAll(route.get(shortestRouteIndex).getPoints());
+                        Polyline polyline = map.addPolyline(polyOptions);
+                        start=polyline.getPoints().get(0);
+                        int k=polyline.getPoints().size();
+                        end=polyline.getPoints().get(k-1);
+                        polylines.add(polyline);
+
+                    }
+                    else {
+
+                    }
+
+                }
+
+                //Add Marker on route starting position
+                MarkerOptions startMarker = new MarkerOptions();
+                startMarker.position(start);
+                startMarker.title("Vị trí của tôi");
+                map.addMarker(startMarker);
+
+                //Add Marker on route ending position
+
+                Log.d("?",String.valueOf(end));
+                markerOptions.position(end);
+                marker = map.addMarker(markerOptions);
+                marker.showInfoWindow();
+
+            }
+        },1500);
+    }
+
+    @Override
+    public void onRoutingCancelled() {
+        findRoutes(start,end);
     }
 
 }
