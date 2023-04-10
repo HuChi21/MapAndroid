@@ -71,15 +71,17 @@ import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MapActivity extends FragmentActivity implements OnMapReadyCallback,RoutingListener {
+    private TextView txtFeaturename,txtAddress, txtRatescore,txtIsopen,txtOpeninghour,txtType,txtWeb;
+    private RatingBar ratingBar;
+    private Button btnDuongdi,btnGoi,btnWeb;
+    private ImageView imgGps, imgView, imgInfo, imgDirect;
+    private LinearLayout bottom_address_detail;
+    private BottomSheetBehavior sheetBehavior;
     private boolean permissionGranted = false;
     private static final int LOCATION_REQUEST_CODE = 1234;
     private static int changeView = 0;
     private static final float DEFAULT_CAM = 15f;
     private double selectLat, selectLng;
-    private TextView txtFeaturename,txtAddress,txtRate,txtIsopen,txtOpeninghour,txtType,txtWeb;
-    private RatingBar ratingBar;
-    private Button btnDuongdi,btnGoi,btnWeb;
-    private Address address;
     private List<Address> addresses;
     private String selectedAddress;
     private GoogleMap map;
@@ -87,9 +89,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private FusedLocationProviderClient fusedLocationProviderClient;
     private String apikey;
     private PlacesClient placesClient;
-    private ImageView imgGps, imgView, imgInfo, imgDirect;
-    private LinearLayout bottom_address_detail;
-    private BottomSheetBehavior sheetBehavior;
+
     private LocationManager locationManager;
     private LatLng start,end;
     private MarkerOptions markerOptions = new MarkerOptions();;
@@ -109,19 +109,18 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         imgView = (ImageView) findViewById(R.id.imgView);
         imgInfo = (ImageView) findViewById(R.id.imgInfo);
         imgDirect = (ImageView) findViewById(R.id.imgDirect);
-
         //tạo bottom sheet chi tiết địa chỉ
         bottom_address_detail = (LinearLayout) findViewById(R.id.bottom_address_detail);
         sheetBehavior = BottomSheetBehavior.from(bottom_address_detail);
 
-        txtFeaturename = findViewById(R.id.feartureName);
-        txtAddress = findViewById(R.id.address);
-        ratingBar = findViewById(R.id.rating);
-        txtRate = findViewById(R.id.rate);
-        txtIsopen = findViewById(R.id.isOpen);
-        txtOpeninghour = findViewById(R.id.openingHour);
-        txtType = findViewById(R.id.type);
-        txtWeb = findViewById(R.id.website);
+        txtFeaturename = findViewById(R.id.txtFeatureName);
+        txtAddress = findViewById(R.id.txtAddress);
+        ratingBar = findViewById(R.id.txtRating);
+        txtRatescore = findViewById(R.id.txtRateScore);
+        txtIsopen = findViewById(R.id.txtIsOpen);
+        txtOpeninghour = findViewById(R.id.txtOpeningHour);
+        txtType = findViewById(R.id.txtType);
+        txtWeb = findViewById(R.id.txtWebsite);
         btnDuongdi = findViewById(R.id.btnDuongdi);
         btnGoi = findViewById(R.id.btnGoi);
         btnWeb = findViewById(R.id.btnTrangWeb);
@@ -149,7 +148,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.d(TAG, "onRequestPermissionsResult: called.");
         permissionGranted = false;
         switch (requestCode) {
             case LOCATION_REQUEST_CODE: {
@@ -157,11 +155,9 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     for (int i = 0; i < grantResults.length; i++) {
                         if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
                             permissionGranted = false;
-                            Log.d(TAG, "onRequestPermissionsResult: permission failed");
                             return;
                         }
                     }
-                    Log.d(TAG, "onRequestPermissionsResult: permission granted");
                     permissionGranted = true;
                     //khởi tạo map
                     initMap();
@@ -193,8 +189,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             map.getUiSettings().setMyLocationButtonEnabled(false);
             map.getUiSettings().setZoomControlsEnabled(true);
             actionMap(); //
-            }
-
+        }
     }
     public void getCurrentLocation() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -238,7 +233,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     }
     private void requestGPS() {
         final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
-
         if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
             buildAlertMessageNoGps();
         }
@@ -282,7 +276,6 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                     map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
                     changeView = 0;
                 }
-
             }
         });
         imgInfo.setOnClickListener(new View.OnClickListener() {
@@ -290,18 +283,15 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onClick(View v) {
                 try{
                     if(sheetBehavior.getState() != sheetBehavior.STATE_EXPANDED){
-                        Toast.makeText(MapActivity.this, "STATE_EXPANDED", Toast.LENGTH_SHORT).show();
                         marker.hideInfoWindow();
                         sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
                     }else {
                         sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
-                        Toast.makeText(MapActivity.this, "STATE_COLLAPSED", Toast.LENGTH_SHORT).show();
                         marker.showInfoWindow();
                     }
                 }catch (NullPointerException e){
                     Log.e(TAG, "onClick: NullPointerException: " + e.getMessage() );
                 }
-
             }
         });
         imgDirect.setOnClickListener(new View.OnClickListener() {
@@ -387,7 +377,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             public void onPlaceSelected(@NonNull Place place) {
                 // TODO: Get info about the selected place.
 
-                Log.i(TAG, "Place: " +place.getLatLng()+ place.getName() + ", " + place.getId()+String.valueOf(place.getAddressComponents())+place.getOpeningHours());
+//                Log.i(TAG, "Place: " +place.getLatLng()+ place.getName() + ", " + place.getId()+String.valueOf(place.getAddressComponents())+place.getOpeningHours());
                 map.clear();
                 String knownName=place.getName();
                 String address ="";
@@ -432,7 +422,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                             }
                         }
                         String[] hour = openinghour.split("–");
-                        Log.d("hehe", hour[0].trim());
+//                        Log.d("hehe", hour[0].trim());
                         if(hour[0].trim().equals("Mở cửa cả ngày")){
                             isOpen = "Đang mở cửa";
                         }
@@ -440,7 +430,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                             isOpen = "Đóng cửa";
                         }
                         else{
-                            Toast.makeText(MapActivity.this, "Đúng h oi`", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(MapActivity.this, "Đúng h oi`", Toast.LENGTH_SHORT).show();
                             isOpen = "Đang mở cửa";
                         }
                     }
@@ -466,12 +456,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             @Override
             public void onClick(View v) {
                 if(sheetBehavior.getState() != sheetBehavior.STATE_EXPANDED){
-                    Toast.makeText(MapActivity.this, "STATE_EXPANDED", Toast.LENGTH_SHORT).show();
                     marker.hideInfoWindow();
                     sheetBehavior.setState(sheetBehavior.STATE_EXPANDED);
                 }else {
                     sheetBehavior.setState(sheetBehavior.STATE_COLLAPSED);
-                    Toast.makeText(MapActivity.this, "STATE_COLLAPSED", Toast.LENGTH_SHORT).show();
                     marker.showInfoWindow();
                 }
             }
@@ -479,7 +467,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         txtAddress.setText(address);
         ratingBar.setRating(rating);
 //        ratingBar.setBackT(0xFFFBBC04);
-        txtRate.setText("("+String.format("%.02f",rating)+")");
+        txtRatescore.setText("("+String.format("%.02f",rating)+")");
         txtIsopen.setText(isopen);
         if(isopen.equals("Đang mở cửa")){
             txtIsopen.setTextColor(0xFF90EE90);
@@ -529,7 +517,7 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         });
     }
     private void moveCam(LatLng latLng, float zoom, String title, String snippet){
-        Log.d(TAG, "moveCamera: moving the camera to: lat: " + latLng.latitude + ", lng: " + latLng.longitude );
+//        Log.d(TAG, "moveCamera: moving the camera to: lat: " + latLng.latitude + ", lng: " + latLng.longitude );
         Log.i(TAG, latLng.latitude + latLng.longitude +","+ DEFAULT_CAM + title + snippet);
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
 

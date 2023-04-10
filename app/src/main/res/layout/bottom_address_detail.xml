@@ -16,7 +16,7 @@
     <TextView
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:id="@+id/feartureName"
+            android:id="@+id/txtFeatureName"
             android:textColor="@color/black"
             android:gravity="center|start"
             android:textSize="18dp"
@@ -37,7 +37,7 @@
            android:layout_width="match_parent"
            android:layout_height="40dp"
            android:gravity="center|start"
-           android:id="@+id/address"
+           android:id="@+id/txtAddress"
            android:textSize="15dp"
            android:textColor="#121212"
            android:hint="Địa chỉ"
@@ -63,7 +63,7 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:gravity="center|start"
-            android:id="@+id/type"
+            android:id="@+id/txtType"
             android:textAllCaps="false"
             android:textColor="#121212"
             android:hint="loại"
@@ -90,7 +90,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <RatingBar
-            android:id="@+id/rating"
+            android:id="@+id/txtRating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
@@ -102,7 +102,7 @@
             app:layout_constraintStart_toEndOf="@+id/imageView" />
 
         <TextView
-            android:id="@+id/rate"
+            android:id="@+id/txtRateScore"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="120dp"
@@ -132,7 +132,7 @@
             />
 
         <TextView
-            android:id="@+id/isOpen"
+            android:id="@+id/txtIsOpen"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:hint="Opening"
@@ -141,7 +141,7 @@
             />
 
         <TextView
-            android:id="@+id/openingHour"
+            android:id="@+id/txtOpeningHour"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="Opening hour"
@@ -168,7 +168,7 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:gravity="center|start"
-            android:id="@+id/website"
+            android:id="@+id/txtWebsite"
             android:textColor="#121212"
             android:hint="website"
             android:layout_marginBottom="20dp"
